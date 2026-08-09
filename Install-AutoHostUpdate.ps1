@@ -31,12 +31,19 @@ if (-not $ScriptPath) {
 $ScriptPath = [System.IO.Path]::GetFullPath($ScriptPath)
 Write-Info "Путь к основному скрипту: $ScriptPath"
 
+# Вспомогательный VBS-скрипт скрытого запуска: лежит рядом с основным скриптом.
+$HelperPath = Join-Path (Split-Path $ScriptPath -Parent) "AutoHostUpdate_launch.vbs"
+
 # ---------- Режим удаления ----------
 # Удаляем задачу из Планировщика, если она есть; отсутствие задачи не считается ошибкой.
 if ($Uninstall) {
     try {
         Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false -ErrorAction Stop
         Write-Info "Задача '$TaskName' удалена."
+        if (Test-Path -LiteralPath $HelperPath) {
+            Remove-Item -LiteralPath $HelperPath -Force
+            Write-Info "Удалён скрытый запускатель: $HelperPath"
+        }
     } catch {
         if ($_.Exception.Message -match "not found|не найден") {
             Write-Host "Задача '$TaskName' не существует - удалять нечего."
@@ -54,10 +61,24 @@ if (-not (Test-Path -LiteralPath $ScriptPath)) {
 }
 Write-Info "Скрипт найден: $ScriptPath"
 
+# ---------- Скрытый запускатель (VBS) ----------
+# wscript.exe сам по себе не создаёт консоли. VBS-помощник поднимает
+# powershell.exe со стилем окна 0 (скрыто) - консоль не появляется даже
+# при запуске задачи в интерактивном вводе (мелькание окна исключено).
+Write-Info "Создаю скрытый запускатель: $HelperPath"
+$vbs = @'
+Set fso = CreateObject("Scripting.FileSystemObject")
+q = Chr(34)
+scriptPath = WScript.Arguments(0)
+Set shell = CreateObject("WScript.Shell")
+shell.Run "powershell.exe -NoProfile -ExecutionPolicy Bypass -File " & q & scriptPath & q, 0, False
+'@
+[System.IO.File]::WriteAllText($HelperPath, $vbs, [System.Text.UTF8Encoding]::new($false))
+
 # ---------- Аргумент действия ----------
-# Запуск powershell.exe со скрытым окном и обходом политики выполнения.
-$action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument ('-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "{0}"' -f $ScriptPath)
-Write-Host "  действие: powershell.exe $($action.Arguments)"
+# Задача запускает wscript.exe с путями к помощнику и к основному скрипту.
+$action = New-ScheduledTaskAction -Execute "wscript.exe" -Argument ('"{0}" "{1}"' -f $HelperPath, $ScriptPath)
+Write-Host "  действие: wscript.exe $($action.Arguments)"
 
 # ---------- Триггер при входе ----------
 # Задача срабатывает при входе пользователя в систему.
