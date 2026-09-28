@@ -30,24 +30,12 @@
 
 ## Состав проекта
 
-| Файл | Назначение |
-|---|---|
-| `AutoHostUpdate.ps1` | Основной скрипт обновления `hosts`. |
-| `Install-AutoHostUpdate.ps1` | Создаёт задачу в Планировщике задач для автозапуска при входе в систему. |
-| `Uninstall-AutoHostUpdate.ps1` | Удаляет эту задачу. |
-| `AGENTS.md` | Техническая документация для разработки. |
+-
 
 ## Требования
 
-- Windows (PowerShell 5.1 и выше, достаточно `powershell.exe`).
-- Запуск от имени администратора — изменение `hosts` и `ipconfig /flushdns`
-  требуют прав администратора.
-- Доступ в интернет к источнику `https://geohide.ru/eu/hosts`.
+-
 
 ## Установка
 
-1. Скопируйте все файлы проекта в удобную папку.
-2. Запустите от имени администратора:
-
-   ```powershell
-   powershell.exe -NoProfile -ExecutionPolicy Bypass -File Install-AutoHostUpdate.ps1
+-
