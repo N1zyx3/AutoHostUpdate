@@ -32,6 +32,7 @@
 
 -
 
+*Первоначальный состав со скриптами PowerShell [здесь](https://github.com/N1zyx3/AutoHostUpdate/tree/powershell)*
 ## Требования
 
 -
