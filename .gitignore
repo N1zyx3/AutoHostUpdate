@@ -1,2 +1,7 @@
-AGENTS.md
 .venv
+dist
+__pycache__
+.idea
+build
+main.spec
+AGENTS.md
