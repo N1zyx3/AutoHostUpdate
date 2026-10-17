@@ -1,7 +1,0 @@
-.venv
-dist
-__pycache__
-.idea
-build
-ahu.spec
-AGENTS.md
