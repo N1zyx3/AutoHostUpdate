@@ -47,7 +47,7 @@
 ## Установка
 
 1. Скопируйте все файлы проекта в удобную папку.
-2. Запустите от имени администратора:
+2. Запустите в этой папке от имени администратора:
 
    ```powershell
    powershell.exe -NoProfile -ExecutionPolicy Bypass -File Install-AutoHostUpdate.ps1
