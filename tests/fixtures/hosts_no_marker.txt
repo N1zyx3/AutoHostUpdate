@@ -1,0 +1,4 @@
+# Copyright (c) 1993-2009 Microsoft Corp.
+
+127.0.0.1       localhost
+::1             localhost

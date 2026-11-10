@@ -1,0 +1,19 @@
+# GeoHide DNS hosts
+# Последнее обновление: 2026-11-09 10:00:00
+# Источник: https://geohide.ru/eu/hosts
+
+# Google
+142.250.74.46 google.com
+142.250.74.46 www.google.com
+
+# YouTube
+142.250.74.46 youtube.com
+142.250.74.46 www.youtube.com
+142.250.74.46 m.youtube.com
+
+# Discord
+162.159.128.233 discord.com
+162.159.128.233 gateway.discord.gg
+
+# Только в источнике
+1.2.3.4 source-only.example

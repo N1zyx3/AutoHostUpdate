@@ -1,0 +1,17 @@
+# Copyright (c) 1993-2009 Microsoft Corp.
+#
+
+127.0.0.1       localhost
+::1             localhost
+
+# Последнее обновление: 2026-10-01 08:00:00
+
+# Google
+142.250.74.46 google.com
+
+# YouTube
+142.250.74.46 youtube.com
+142.250.74.46 www.youtube.com
+
+# Моя локальная группа
+10.0.0.5 nas.local

@@ -2,3 +2,17 @@ AGENTS.md
 AutoHostUpdate_launch.vbs
 .venv
 .idea
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+build/
+dist/
+*.spec.bak
+
+# Локальные настройки/логи
+settings.local.json

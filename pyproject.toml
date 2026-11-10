@@ -1,0 +1,67 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "autohostupdate"
+version = "0.2.0"
+description = "Автоматическая синхронизация именованных групп в hosts с источником GeoHideDNS"
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+license = "MIT"
+dependencies = [
+    "httpx>=0.28,<1",
+    "pydantic>=2.10,<3",
+    "pydantic-settings>=2.0,<3",
+    "platformdirs>=4,<5",
+    "pywin32>=312; sys_platform == 'win32'",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.24",
+    "respx>=0.22",
+    "hypothesis>=6",
+    "ruff>=0.9",
+    "mypy>=1.14",
+    "pyinstaller>=6",
+]
+ui = [
+    "winrt-runtime~=3.2.1",
+    "winui3-Microsoft.UI.Xaml==3.2.1",
+    "winui3-Microsoft.UI.Xaml.Controls==3.2.1",
+    "winui3-Microsoft.Windows.ApplicationModel.DynamicDependency.Bootstrap==3.2.1",
+    "winui3-Microsoft.Windows.AppNotifications==3.2.1",
+]
+
+[project.scripts]
+autohostupdate = "autohostupdate.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+autohostupdate = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "RUF"]
+ignore = ["RUF001", "RUF002", "RUF003"]  # кириллица в литералах — норма
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src"]
+strict = false
+warn_unused_ignores = true
+warn_redundant_casts = true
