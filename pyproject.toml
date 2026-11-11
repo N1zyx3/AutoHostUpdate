@@ -28,9 +28,13 @@ dev = [
     "pyinstaller>=6",
 ]
 ui = [
-    "winrt-runtime~=3.2.1",
+    "winrt-runtime==3.2.1",
+    "winrt-Windows.Foundation==3.2.1",
+    "winrt-Windows.Foundation.Collections==3.2.1",
     "winui3-Microsoft.UI.Xaml==3.2.1",
     "winui3-Microsoft.UI.Xaml.Controls==3.2.1",
+    "winui3-Microsoft.UI.Xaml.Markup==3.2.1",
+    "winui3-Microsoft.UI.Dispatching==3.2.1",
     "winui3-Microsoft.Windows.ApplicationModel.DynamicDependency.Bootstrap==3.2.1",
     "winui3-Microsoft.Windows.AppNotifications==3.2.1",
 ]
