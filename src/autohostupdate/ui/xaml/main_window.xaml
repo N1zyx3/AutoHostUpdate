@@ -17,7 +17,7 @@
     </NavigationView.MenuItems>
     <ScrollViewer>
       <Grid Padding="24">
-        <StackPanel x:Name="DashboardPage" Spacing="8">
+        <StackPanel x:Name="DashboardPage" Spacing="10">
           <TextBlock Text="Обзор" FontSize="28" />
           <InfoBar x:Name="StatusBar" IsOpen="True" Severity="Informational" Title="Готово" />
           <StackPanel Orientation="Horizontal" Spacing="8">
@@ -27,45 +27,97 @@
             <ProgressRing x:Name="BusyRing" IsActive="False" Width="24" Height="24" />
           </StackPanel>
           <TextBlock x:Name="StatusText" TextWrapping="Wrap" />
-          <StackPanel Orientation="Horizontal" Spacing="32">
-            <StackPanel>
-              <TextBlock Text="Дата источника" Opacity="0.7" />
-              <TextBlock x:Name="SourceDateText" Text="—" FontSize="18" />
-            </StackPanel>
-            <StackPanel>
-              <TextBlock Text="Дата в hosts" Opacity="0.7" />
-              <TextBlock x:Name="LocalDateText" Text="—" FontSize="18" />
-            </StackPanel>
-            <StackPanel>
-              <TextBlock Text="Резервная копия" Opacity="0.7" />
-              <TextBlock x:Name="BackupText" Text="—" TextWrapping="Wrap" />
-            </StackPanel>
+          <Grid ColumnSpacing="32" RowSpacing="4">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="Дата источника" Opacity="0.7" />
+            <TextBlock Grid.Row="0" Grid.Column="1" Text="Дата в hosts" Opacity="0.7" />
+            <TextBlock Grid.Row="0" Grid.Column="2" Text="Резервная копия" Opacity="0.7" />
+            <TextBlock Grid.Row="1" Grid.Column="0" x:Name="SourceDateText" Text="—" FontSize="18" />
+            <TextBlock Grid.Row="1" Grid.Column="1" x:Name="LocalDateText" Text="—" FontSize="18" />
+            <TextBlock Grid.Row="1" Grid.Column="2" x:Name="BackupText" Text="—" TextWrapping="Wrap" />
+          </Grid>
+          <TextBlock Text="Быстрые действия" FontSize="18" Margin="0,12,0,0" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button x:Name="OpenSettingsButton" Content="Настройки" />
+            <Button x:Name="OpenLogsButton2" Content="Журнал" />
+            <Button x:Name="OpenSourceButton" Content="Источник" />
           </StackPanel>
         </StackPanel>
 
         <StackPanel x:Name="GroupsPage" Visibility="Collapsed" Spacing="8">
           <TextBlock Text="Группы" FontSize="28" />
           <TextBlock x:Name="GroupsSummary" TextWrapping="Wrap" />
-          <ListView x:Name="GroupsList" Height="420" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBox x:Name="GroupSearchBox" PlaceholderText="Поиск группы" Width="260" />
+            <Button x:Name="RefreshGroupsButton" Content="Обновить список" />
+            <Button x:Name="EnableAllGroupsButton" Content="Включить все" />
+            <Button x:Name="DisableAllGroupsButton" Content="Выключить все" />
+          </StackPanel>
+          <TextBlock x:Name="GroupsHint" Opacity="0.7" TextWrapping="Wrap"
+                     Text="Снятый флажок оставляет группу без изменений при обновлении." />
+          <ListView x:Name="GroupsList" Height="420" SelectionMode="None" />
         </StackPanel>
 
         <StackPanel x:Name="SourcePage" Visibility="Collapsed" Spacing="8">
           <TextBlock Text="Источник" FontSize="28" />
           <TextBox x:Name="SourceUrlBox" Header="URL источника" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBox x:Name="SourceTimeoutBox" Header="Таймаут, с" Width="120" />
+            <TextBox x:Name="SourceRetriesBox" Header="Повторы" Width="100" />
+            <TextBox x:Name="SourceMaxKbBox" Header="Макс. размер, КБ" Width="160" />
+            <TextBox x:Name="MarkerPrefixBox" Header="Префикс маркера" Width="240" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <CheckBox x:Name="VerifyTlsCheck" Content="Проверять TLS" />
+            <ComboBox x:Name="ProxyCombo" Header="Прокси" Width="180">
+              <ComboBoxItem Content="Системный" Tag="system" />
+              <ComboBoxItem Content="Без прокси" Tag="none" />
+              <ComboBoxItem Content="Вручную" Tag="manual" />
+            </ComboBox>
+            <TextBox x:Name="ProxyUrlBox" Header="Прокси URL" Width="240" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button x:Name="ProbeSourceButton" Content="Проверить соединение" />
+            <Button x:Name="SaveSourceButton" Content="Сохранить" />
+          </StackPanel>
           <TextBlock x:Name="SourceInfoText" TextWrapping="Wrap" />
+          <TextBlock Text="Предпросмотр ответа" FontSize="18" Margin="0,8,0,0" />
+          <TextBox x:Name="SourcePreviewBox" IsReadOnly="True" AcceptsReturn="True"
+                   Height="260" TextWrapping="NoWrap" />
         </StackPanel>
 
         <StackPanel x:Name="SchedulePage" Visibility="Collapsed" Spacing="8">
           <TextBlock Text="Расписание" FontSize="28" />
+          <TextBlock x:Name="ScheduleAdminHint" Opacity="0.7" TextWrapping="Wrap" />
           <TextBox x:Name="TaskNameBox" Header="Имя задачи" />
-          <ComboBox x:Name="TriggerCombo" Header="Триггер">
+          <ComboBox x:Name="TriggerCombo" Header="Триггер" Width="280">
             <ComboBoxItem Content="При входе в систему" Tag="at_logon" />
             <ComboBoxItem Content="Ежедневно" Tag="daily" />
             <ComboBoxItem Content="По интервалу" Tag="interval" />
+            <ComboBoxItem Content="Вручную" Tag="manual" />
           </ComboBox>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBox x:Name="DailyTimeBox" Header="Время (HH:MM)" Width="140" />
+            <TextBox x:Name="IntervalBox" Header="Интервал, мин" Width="140" />
+            <TextBox x:Name="DelayBox" Header="Задержка, с" Width="140" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <CheckBox x:Name="AllowBatteryCheck" Content="Разрешать от батареи" />
+            <CheckBox x:Name="RunMissedCheck" Content="Запускать пропущенный запуск" />
+          </StackPanel>
           <StackPanel Orientation="Horizontal" Spacing="8">
             <Button x:Name="InstallTaskButton" Content="Установить задачу" />
             <Button x:Name="RemoveTaskButton" Content="Удалить задачу" />
+            <Button x:Name="RunTaskButton" Content="Запустить сейчас" />
+            <Button x:Name="RefreshTaskButton" Content="Обновить статус" />
           </StackPanel>
           <TextBlock x:Name="TaskStatusText" TextWrapping="Wrap" />
         </StackPanel>
@@ -73,8 +125,18 @@
         <StackPanel x:Name="LogsPage" Visibility="Collapsed" Spacing="8">
           <TextBlock Text="Журнал" FontSize="28" />
           <StackPanel Orientation="Horizontal" Spacing="8">
+            <ComboBox x:Name="LogLevelFilter" Header="Уровень" Width="160">
+              <ComboBoxItem Content="Все" Tag="" />
+              <ComboBoxItem Content="DEBUG" Tag="DEBUG" />
+              <ComboBoxItem Content="INFO" Tag="INFO" />
+              <ComboBoxItem Content="WARNING" Tag="WARNING" />
+              <ComboBoxItem Content="ERROR" Tag="ERROR" />
+            </ComboBox>
+            <TextBox x:Name="LogSearchBox" Header="Поиск" Width="240" />
             <Button x:Name="RefreshLogsButton" Content="Обновить" />
             <Button x:Name="OpenLogsButton" Content="Открыть файл" />
+            <Button x:Name="ClearLogsButton" Content="Очистить" />
+            <Button x:Name="ExportDiagnosticsButton" Content="Экспорт диагностики" />
           </StackPanel>
           <TextBox x:Name="LogBox" IsReadOnly="True" AcceptsReturn="True" Height="420"
                    TextWrapping="NoWrap" />
@@ -82,24 +144,72 @@
 
         <StackPanel x:Name="SettingsPage" Visibility="Collapsed" Spacing="8">
           <TextBlock Text="Настройки" FontSize="28" />
+          <TextBlock Text="Общие" FontSize="18" />
+          <ComboBox x:Name="LanguageCombo" Header="Язык" Width="180">
+            <ComboBoxItem Content="Русский" Tag="ru" />
+            <ComboBoxItem Content="English" Tag="en" />
+          </ComboBox>
+          <ComboBox x:Name="ThemeCombo" Header="Тема" Width="180">
+            <ComboBoxItem Content="Как в системе" Tag="system" />
+            <ComboBoxItem Content="Светлая" Tag="light" />
+            <ComboBoxItem Content="Тёмная" Tag="dark" />
+          </ComboBox>
           <CheckBox x:Name="RunAtLogonCheck" Content="Запускать при входе в систему" />
-          <CheckBox x:Name="FlushDnsCheck" Content="Сбрасывать DNS-кеш после записи" />
+          <CheckBox x:Name="StartMinimizedCheck" Content="Запускать свёрнутым" />
+          <CheckBox x:Name="SingleInstanceCheck" Content="Только один экземпляр" />
+
+          <TextBlock Text="Обновление" FontSize="18" Margin="0,12,0,0" />
+          <ComboBox x:Name="CompareModeCombo" Header="Сравнение" Width="220">
+            <ComboBoxItem Content="По дате маркера" Tag="date" />
+            <ComboBoxItem Content="По содержимому" Tag="hash" />
+          </ComboBox>
           <CheckBox x:Name="DryRunCheck" Content="Dry-run по умолчанию" />
-          <ComboBox x:Name="LogLevelCombo" Header="Уровень логирования">
+          <CheckBox x:Name="CreateBackupCheck" Content="Создавать резервную копию" />
+          <CheckBox x:Name="FlushDnsCheck" Content="Сбрасывать DNS-кеш после записи" />
+          <CheckBox x:Name="ClearReadonlyCheck" Content="Снимать атрибут «только чтение»" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBox x:Name="BackupKeepCountBox" Header="Хранить копий" Width="140" />
+            <TextBox x:Name="BackupKeepDaysBox" Header="Хранить дней" Width="140" />
+            <TextBox x:Name="HostsPathBox" Header="Путь к hosts" Width="420" />
+          </StackPanel>
+
+          <TextBlock Text="Уведомления" FontSize="18" Margin="0,12,0,0" />
+          <CheckBox x:Name="NotifyEnabledCheck" Content="Включить уведомления" />
+          <CheckBox x:Name="NotifySuccessCheck" Content="Об успешном обновлении" />
+          <CheckBox x:Name="NotifyNoUpdateCheck" Content="«Обновление не требуется»" />
+          <CheckBox x:Name="NotifyErrorsCheck" Content="Об ошибках" />
+          <CheckBox x:Name="NotifySoundCheck" Content="Со звуком" />
+
+          <TextBlock Text="Журнал" FontSize="18" Margin="0,12,0,0" />
+          <ComboBox x:Name="LogLevelCombo" Header="Уровень логирования" Width="180">
             <ComboBoxItem Content="DEBUG" Tag="DEBUG" />
             <ComboBoxItem Content="INFO" Tag="INFO" />
             <ComboBoxItem Content="WARNING" Tag="WARNING" />
             <ComboBoxItem Content="ERROR" Tag="ERROR" />
           </ComboBox>
-          <Button x:Name="SaveSettingsButton" Content="Сохранить" />
+          <ComboBox x:Name="LogFormatCombo" Header="Формат" Width="180">
+            <ComboBoxItem Content="Текст" Tag="text" />
+            <ComboBoxItem Content="JSON" Tag="json" />
+          </ComboBox>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBox x:Name="LogMaxSizeBox" Header="Макс. размер, МБ" Width="160" />
+            <TextBox x:Name="LogBackupCountBox" Header="Ротаций" Width="120" />
+            <TextBox x:Name="LogDirectoryBox" Header="Каталог журнала" Width="420" />
+          </StackPanel>
+
+          <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,16,0,0">
+            <Button x:Name="SaveSettingsButton" Content="Сохранить" />
+            <Button x:Name="ResetSettingsButton" Content="Сбросить" />
+          </StackPanel>
           <TextBlock x:Name="SettingsStatusText" TextWrapping="Wrap" />
         </StackPanel>
 
         <StackPanel x:Name="AboutPage" Visibility="Collapsed" Spacing="8">
           <TextBlock Text="О программе" FontSize="28" />
-          <TextBlock Text="AutoHostUpdate" />
+          <TextBlock x:Name="AboutVersionText" Text="AutoHostUpdate" />
           <TextBlock Text="Источник: https://geohide.ru/eu/hosts" TextWrapping="Wrap" />
           <TextBlock Text="Python + WinUI 3 (PyWinRT). Лицензия MIT." TextWrapping="Wrap" />
+          <TextBlock x:Name="AboutEnvironmentText" TextWrapping="Wrap" Opacity="0.8" />
         </StackPanel>
       </Grid>
     </ScrollViewer>

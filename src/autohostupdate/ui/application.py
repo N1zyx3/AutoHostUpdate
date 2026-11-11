@@ -36,6 +36,9 @@ class AutoHostUpdateApp(Application, IXamlMetadataProvider):
         self.ui = MainWindow(settings)
         self.ui.show()
 
+        if os.environ.get("AUTOHOSTUPDATE_UI_SMOKE_PAGES"):
+            self.ui.smoke_exercise()
+
         smoke_seconds = float(os.environ.get("AUTOHOSTUPDATE_UI_SMOKE", "0") or 0)
         if smoke_seconds > 0:
             timer = self.ui.window.dispatcher_queue.create_timer()
