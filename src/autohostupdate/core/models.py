@@ -16,6 +16,7 @@ class GroupStatus(StrEnum):
     OUTDATED = "outdated"
     LOCAL_ONLY = "local_only"
     SOURCE_ONLY = "source_only"
+    DISABLED = "disabled"
 
 
 @dataclass(frozen=True, slots=True)
@@ -96,6 +97,7 @@ class UpdatePlan:
     local_date: str = ""
     new_lines: Lines = ()
     marker_changed: bool = False
+    added_groups: tuple[str, ...] = ()
 
     @property
     def changed_groups(self) -> tuple[GroupChange, ...]:

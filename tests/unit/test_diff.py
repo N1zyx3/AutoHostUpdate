@@ -69,3 +69,43 @@ def test_render_plan_contains_summary() -> None:
     report = diff.render_plan(diff.build_plan(local_lines(), load_source()))
     assert "2026-11-09 10:00:00" in report
     assert "Групп к обновлению: 2" in report
+
+
+def test_disabled_groups_are_left_untouched() -> None:
+    plan = diff.build_plan(
+        local_lines(), load_source(), skip_names=["Google"], force_add_names=["Discord"]
+    )
+    statuses = {change.name: change.status for change in plan.changes}
+
+    assert statuses["Google"] is GroupStatus.DISABLED
+    assert statuses["YouTube"] is GroupStatus.OUTDATED
+    assert plan.changed_count == 1
+
+    text = "\n".join(plan.new_lines)
+    assert "142.250.74.46 google.com\n" in text
+    assert "www.google.com" not in text  # отключённая группа не перезаписана
+    assert "gateway.discord.gg" in text  # force_add добавил группу
+    assert "Discord" in plan.added_groups
+
+
+def test_ignore_case_matches_group_names() -> None:
+    snapshot = SourceSnapshot(
+        date_value="2026-01-01",
+        groups=(Group(name="google", lines=("# google", "1.1.1.1 google.com")),),
+    )
+    lines = ["# Последнее обновление: 2026-01-01", "", "# Google", "9.9.9.9 google.com"]
+
+    strict = diff.build_plan(lines, snapshot)
+    assert {c.status for c in strict.changes} == {GroupStatus.LOCAL_ONLY, GroupStatus.SOURCE_ONLY}
+
+    loose = diff.build_plan(lines, snapshot, ignore_case=True)
+    assert loose.changed_count == 1
+    assert loose.new_lines == tuple(
+        ["# Последнее обновление: 2026-01-01", "", "# google", "1.1.1.1 google.com"]
+    )
+
+
+def test_force_add_is_noop_for_existing_group() -> None:
+    plan = diff.build_plan(local_lines(), load_source(), force_add_names=["Google"])
+    assert plan.added_groups == ()
+    assert plan.changed_count == 2

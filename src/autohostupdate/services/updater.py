@@ -52,7 +52,15 @@ class Updater:
     async def plan(self) -> tuple[SourceSnapshot, UpdatePlan]:
         snapshot = await self.fetch_snapshot()
         document = read_hosts(self.hosts_path)
-        plan = diff.build_plan(document.lines, snapshot, self.settings.source.marker_prefix)
+        groups = self.settings.groups
+        plan = diff.build_plan(
+            document.lines,
+            snapshot,
+            self.settings.source.marker_prefix,
+            skip_names=groups.disabled_groups,
+            force_add_names=groups.force_add_groups,
+            ignore_case=groups.ignore_case,
+        )
         return snapshot, plan
 
     async def run(self, *, dry_run: bool | None = None) -> UpdateResult:
