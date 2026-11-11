@@ -47,7 +47,16 @@ def _command_line(executable: str) -> str:
     return subprocess.list2cmdline([executable, "--update", "--quiet"])
 
 
-def install_task(executable: str, settings: ScheduleSettings) -> None:
+def task_command() -> tuple[str, str]:
+    """Возвращает (путь, аргументы) для запуска обновления из Планировщика."""
+    if getattr(sys, "frozen", False):
+        return sys.executable, "--update --quiet"
+    return sys.executable, "-m autohostupdate --update --quiet"
+
+
+def install_task(
+    executable: str, settings: ScheduleSettings, *, arguments: str = "--update --quiet"
+) -> None:
     """Создаёт или обновляет задачу по настройкам."""
     service = _service()
     root = service.GetFolder(TASK_FOLDER)
@@ -86,7 +95,7 @@ def install_task(executable: str, settings: ScheduleSettings) -> None:
     principal.RunLevel = _TASK_RUNLEVEL.get(settings.run_level, 1)
 
     definition.Actions.Create(0).Path = executable
-    definition.Actions.Item(1).Arguments = "--update --quiet"
+    definition.Actions.Item(1).Arguments = arguments
 
     try:
         root.RegisterTaskDefinition(

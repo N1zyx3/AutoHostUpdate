@@ -36,6 +36,7 @@ class HttpSourceClient:
         verify_tls: bool = True,
         proxy: str | None = None,
         user_agent: str = "AutoHostUpdate",
+        trust_env: bool = True,
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
         self.url = url
@@ -45,6 +46,7 @@ class HttpSourceClient:
         self.verify_tls = verify_tls
         self.proxy = proxy
         self.user_agent = user_agent
+        self.trust_env = trust_env
         self._transport = transport
 
     async def fetch(self, *, etag: str | None = None) -> FetchResult:
@@ -59,6 +61,7 @@ class HttpSourceClient:
                     timeout=self.timeout,
                     verify=self.verify_tls,
                     proxy=self.proxy,
+                    trust_env=self.trust_env,
                     transport=self._transport,
                     follow_redirects=True,
                 ) as client:
