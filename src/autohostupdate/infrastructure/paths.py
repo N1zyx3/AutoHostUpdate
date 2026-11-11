@@ -9,12 +9,11 @@ from pathlib import Path
 from platformdirs import user_data_dir
 
 APP_NAME = "AutoHostUpdate"
-APP_AUTHOR = "AutoHostUpdate"
 
 
 def app_data_dir() -> Path:
     """%LOCALAPPDATA%\\AutoHostUpdate."""
-    return Path(user_data_dir(APP_NAME, APP_AUTHOR, roaming=False))
+    return Path(user_data_dir(APP_NAME, appauthor=False, roaming=False))
 
 
 def logs_dir() -> Path:

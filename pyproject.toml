@@ -28,15 +28,12 @@ dev = [
     "pyinstaller>=6",
 ]
 ui = [
-    "winrt-runtime==3.2.1",
-    "winrt-Windows.Foundation==3.2.1",
-    "winrt-Windows.Foundation.Collections==3.2.1",
-    "winui3-Microsoft.UI.Xaml==3.2.1",
-    "winui3-Microsoft.UI.Xaml.Controls==3.2.1",
-    "winui3-Microsoft.UI.Xaml.Markup==3.2.1",
-    "winui3-Microsoft.UI.Dispatching==3.2.1",
-    "winui3-Microsoft.Windows.ApplicationModel.DynamicDependency.Bootstrap==3.2.1",
-    "winui3-Microsoft.Windows.AppNotifications==3.2.1",
+    "winrt-runtime>=4.1",
+    "winrt-Microsoft.WindowsAppSDK.WinUI>=2.6.5",
+    "winrt-Microsoft.WindowsAppRuntime.Bootstrap>=2.6.5",
+    "winrt-Windows.Foundation",
+    "winrt-Windows.Foundation.Collections",
+    "winrt-Windows.UI.Xaml.Interop",
 ]
 
 [project.scripts]
@@ -46,7 +43,7 @@ autohostupdate = "autohostupdate.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-autohostupdate = ["py.typed"]
+autohostupdate = ["py.typed", "ui/xaml/*.xaml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
