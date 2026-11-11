@@ -14,11 +14,16 @@ from autohostupdate.config.schema import AppSettings
 from autohostupdate.config.store import SettingsError, load_settings
 from autohostupdate.core.writer import read_hosts
 from autohostupdate.errors import AutoHostUpdateError, ElevationRequiredError
-from autohostupdate.infrastructure.http import HttpSourceClient
+from autohostupdate.infrastructure.http import client_from_settings
 from autohostupdate.services import backup as backup_service
 from autohostupdate.services.logging import get_logger, setup_logging
 from autohostupdate.services.privileges import is_admin
-from autohostupdate.services.scheduler import install_task, task_info, uninstall_task
+from autohostupdate.services.scheduler import (
+    install_task,
+    task_command,
+    task_info,
+    uninstall_task,
+)
 from autohostupdate.services.single_instance import SingleInstance
 from autohostupdate.services.updater import Updater
 
@@ -36,6 +41,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--config", type=Path, help="Путь к settings.json")
     parser.add_argument("--hosts", type=Path, help="Путь к файлу hosts (для тестов)")
     parser.add_argument("--source", help="URL источника (переопределяет настройки)")
+    parser.add_argument(
+        "--source-file", type=Path, help="Читать ответ источника из файла (offline/тесты)"
+    )
     parser.add_argument("--quiet", action="store_true", help="Без вывода в консоль")
 
     group = parser.add_mutually_exclusive_group()
@@ -60,15 +68,11 @@ def _emit(quiet: bool, payload: dict | str, as_json: bool) -> None:
 
 
 async def _run_update(settings: AppSettings, args: argparse.Namespace, logger) -> int:
-    client = HttpSourceClient(
-        url=settings.source.url,
-        timeout=settings.source.timeout_seconds,
-        retries=settings.source.retries,
-        max_bytes=settings.source.max_response_kb * 1024,
-        verify_tls=settings.source.verify_tls,
-        user_agent=f"AutoHostUpdate/{__version__}",
-    )
-    updater = Updater(settings, client)
+    client = client_from_settings(settings)
+    source_text: str | None = None
+    if getattr(args, "source_file", None):
+        source_text = Path(args.source_file).read_text(encoding="utf-8")
+    updater = Updater(settings, client, fetcher_text=source_text)
 
     if args.check:
         snapshot, plan = await updater.plan()
@@ -123,8 +127,8 @@ def main(argv: list[str] | None = None) -> int:
             return EXIT_OK
 
         if args.install_task:
-            executable = sys.executable if not getattr(sys, "frozen", False) else sys.argv[0]
-            install_task(executable, settings.schedule)
+            executable, arguments = task_command()
+            install_task(executable, settings.schedule, arguments=arguments)
             _emit(
                 args.quiet, f"Задача '{settings.schedule.task_name}' зарегистрирована.", args.json
             )

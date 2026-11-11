@@ -12,13 +12,13 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from autohostupdate import __version__
-from autohostupdate.config.schema import AppSettings, ProxyMode
+from autohostupdate.config.schema import AppSettings
 from autohostupdate.core import diff, hosts_parser
 from autohostupdate.core.models import Group, GroupStatus, SourceSnapshot, UpdatePlan
 from autohostupdate.core.source import parse_source
 from autohostupdate.core.writer import read_hosts
 from autohostupdate.errors import AutoHostUpdateError
-from autohostupdate.infrastructure.http import HttpSourceClient
+from autohostupdate.infrastructure.http import HttpSourceClient, client_from_settings
 from autohostupdate.services import logging as log_service
 from autohostupdate.services.logging import LogQuery, get_logger
 from autohostupdate.services.updater import Updater
@@ -78,26 +78,7 @@ class AppState:
 
 def build_client(settings: AppSettings) -> HttpSourceClient:
     """Создаёт HTTP-клиент строго по секции `source` настроек."""
-    source = settings.source
-    proxy: str | None = None
-    trust_env = True
-    if source.proxy_mode is ProxyMode.NONE:
-        trust_env = False
-        proxy = None
-    elif source.proxy_mode is ProxyMode.MANUAL:
-        trust_env = False
-        proxy = source.proxy_url or None
-
-    return HttpSourceClient(
-        url=source.url,
-        timeout=source.timeout_seconds,
-        retries=source.retries,
-        max_bytes=source.max_response_kb * 1024,
-        verify_tls=source.verify_tls,
-        proxy=proxy,
-        user_agent=f"{source.user_agent}/{__version__}",
-        trust_env=trust_env,
-    )
+    return client_from_settings(settings)
 
 
 class AppController:

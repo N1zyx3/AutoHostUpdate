@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import httpx
 
+from autohostupdate import __version__
 from autohostupdate.errors import SourceUnavailableError
 
 DEFAULT_URL = "https://geohide.ru/eu/hosts"
@@ -90,3 +92,32 @@ class HttpSourceClient:
 
 def default_client(**kwargs: object) -> HttpSourceClient:
     return HttpSourceClient(**kwargs)  # type: ignore[arg-type]
+
+
+def client_from_settings(settings: AppSettings) -> HttpSourceClient:
+    """Создаёт клиент строго по секции `source` настроек."""
+    from autohostupdate.config.schema import ProxyMode
+
+    source = settings.source
+    proxy: str | None = None
+    trust_env = True
+    if source.proxy_mode is ProxyMode.NONE:
+        trust_env = False
+    elif source.proxy_mode is ProxyMode.MANUAL:
+        trust_env = False
+        proxy = source.proxy_url or None
+
+    return HttpSourceClient(
+        url=source.url,
+        timeout=source.timeout_seconds,
+        retries=source.retries,
+        max_bytes=source.max_response_kb * 1024,
+        verify_tls=source.verify_tls,
+        proxy=proxy,
+        user_agent=f"{source.user_agent}/{__version__}",
+        trust_env=trust_env,
+    )
+
+
+if TYPE_CHECKING:  # pragma: no cover
+    from autohostupdate.config.schema import AppSettings
