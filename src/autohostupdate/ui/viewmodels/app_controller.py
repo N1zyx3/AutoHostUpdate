@@ -239,6 +239,29 @@ class AppController:
         self._set_state(groups=rows)
         return self._state
 
+    def set_group_forced(self, name: str, enabled: bool) -> AppState:
+        """Включает/выключает принудительное добавление группы из источника."""
+        forced = self.settings.groups.force_add_groups
+        if enabled:
+            if all(item.casefold() != name.casefold() for item in forced):
+                self.settings.groups.force_add_groups = [*forced, name]
+        else:
+            self.settings.groups.force_add_groups = [
+                item for item in forced if item.casefold() != name.casefold()
+            ]
+
+        try:
+            save_settings_to_disk(self)
+        except AutoHostUpdateError as exc:
+            self._fail(exc)
+            return self._state
+
+        rows = [
+            replace(row, enabled=enabled) if row.name == name else row for row in self._state.groups
+        ]
+        self._set_state(groups=rows)
+        return self._state
+
     # --- резервные копии -------------------------------------------------------
     def list_backups(self) -> list[BackupRow]:
         """Список резервных копий hosts, новые сверху."""
@@ -345,16 +368,23 @@ class AppController:
     def _rows_from_plan(self, plan: UpdatePlan) -> list[GroupRow]:
         disabled = self._disabled_keys()
         ignore_case = self.settings.groups.ignore_case
+        force = {
+            name.casefold() if ignore_case else name
+            for name in self.settings.groups.force_add_groups
+        }
         rows: list[GroupRow] = []
         for change in plan.changes:
             key = change.name.casefold() if ignore_case else change.name
+            enabled = (
+                key in force if change.status is GroupStatus.SOURCE_ONLY else key not in disabled
+            )
             rows.append(
                 GroupRow(
                     name=change.name,
                     status=change.status,
                     local_lines=len(change.old_lines),
                     source_lines=len(change.new_lines),
-                    enabled=key not in disabled,
+                    enabled=enabled,
                 )
             )
         return rows

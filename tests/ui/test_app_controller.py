@@ -180,6 +180,29 @@ async def test_plan_marks_disabled_groups(tmp_path) -> None:
     assert google.enabled is False
 
 
+async def test_source_only_groups_toggle_force_add(tmp_path) -> None:
+    settings = make_settings(tmp_path)
+    controller = AppController(settings)
+    source_text = (FIXTURES / "source.txt").read_text(encoding="utf-8")
+    controller._updater = lambda: _updater_with(settings, controller, source_text)  # type: ignore[method-assign]
+
+    state = await controller.check()
+    discord = next(row for row in state.groups if row.name == "Discord")
+    assert discord.status is GroupStatus.SOURCE_ONLY
+    assert discord.enabled is False
+
+    controller.set_group_forced("Discord", True)
+    assert "Discord" in controller.settings.groups.force_add_groups
+    assert next(row for row in controller.state.groups if row.name == "Discord").enabled is True
+    reloaded = AppSettings.model_validate_json(
+        (tmp_path / "settings.json").read_text(encoding="utf-8")
+    )
+    assert "Discord" in reloaded.groups.force_add_groups
+
+    controller.set_group_forced("Discord", False)
+    assert "Discord" not in controller.settings.groups.force_add_groups
+
+
 async def test_probe_source_returns_preview(tmp_path) -> None:
     settings = make_settings(tmp_path)
     source_text = (FIXTURES / "source.txt").read_text(encoding="utf-8")

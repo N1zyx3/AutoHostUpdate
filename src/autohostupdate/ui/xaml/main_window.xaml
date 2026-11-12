@@ -62,7 +62,7 @@
             <Button x:Name="DisableAllGroupsButton" Content="Выключить все" />
           </StackPanel>
           <TextBlock x:Name="GroupsHint" Opacity="0.7" TextWrapping="Wrap"
-                     Text="Снятый флажок оставляет группу без изменений при обновлении." />
+                     Text="Снятый флажок оставляет локальную группу без изменений; для групп «только в источнике» флажок добавляет их в hosts." />
           <ListView x:Name="GroupsList" Height="420" SelectionMode="None" />
         </StackPanel>
 

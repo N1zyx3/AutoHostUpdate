@@ -378,12 +378,20 @@ class MainWindow:
 
     def _set_all_groups(self, enabled: bool) -> None:
         for row in list(self.controller.state.groups):
-            if row.enabled != enabled:
+            if row.enabled == enabled:
+                continue
+            if row.status is GroupStatus.SOURCE_ONLY:
+                self.controller.set_group_forced(row.name, enabled)
+            else:
                 self.controller.set_group_enabled(row.name, enabled)
         self._notice("Все группы включены" if enabled else "Все группы отключены")
 
     def _on_group_toggled(self, name: str, enabled: bool) -> None:
-        self.controller.set_group_enabled(name, enabled)
+        row = next((item for item in self.controller.state.groups if item.name == name), None)
+        if row is not None and row.status is GroupStatus.SOURCE_ONLY:
+            self.controller.set_group_forced(name, enabled)
+        else:
+            self.controller.set_group_enabled(name, enabled)
 
     # --- источник --------------------------------------------------------------
     def _probe_source(self) -> None:
@@ -914,7 +922,11 @@ class MainWindow:
         panel.children.append(check)
 
         label = text_cls()
-        detail = f"{STATUS_RU[row.status]} ({row.local_lines} → {row.source_lines} строк)"
+        if row.status is GroupStatus.SOURCE_ONLY:
+            action = "будет добавлена" if row.enabled else "не будет добавлена"
+            detail = f"{STATUS_RU[row.status]} — {action}"
+        else:
+            detail = f"{STATUS_RU[row.status]} ({row.local_lines} → {row.source_lines} строк)"
         label.text = detail
         label.opacity = 0.8 if row.enabled else 0.45
         panel.children.append(label)

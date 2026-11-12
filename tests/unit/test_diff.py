@@ -53,6 +53,30 @@ def test_plan_inserts_marker_when_missing() -> None:
     assert plan.new_lines[0] == "# Последнее обновление: 2026-11-09 10:00:00"
 
 
+def test_duplicate_local_groups_are_both_updated() -> None:
+    snapshot = SourceSnapshot(
+        date_value="2026-01-01",
+        groups=(Group(name="A", lines=("# A", "2.2.2.2 a.example")),),
+    )
+    lines = [
+        "# Последнее обновление: 2026-01-01",
+        "",
+        "# A",
+        "1.1.1.1 a.example",
+        "",
+        "# A",
+        "1.1.1.1 old.example",
+    ]
+
+    plan = diff.build_plan(lines, snapshot)
+
+    updated = [change for change in plan.changes if change.name == "A"]
+    assert len(updated) == 2
+    assert all(change.status is GroupStatus.OUTDATED for change in updated)
+    assert list(plan.new_lines).count("# A") == 2
+    assert "1.1.1.1 old.example" not in plan.new_lines
+
+
 def test_plan_is_idempotent() -> None:
     snapshot = load_source()
     first = diff.build_plan(local_lines(), snapshot)
