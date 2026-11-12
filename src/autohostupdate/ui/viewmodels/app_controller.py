@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable
 from dataclasses import dataclass, field, replace
+from datetime import datetime
 from pathlib import Path
 
 from autohostupdate import __version__
@@ -56,6 +57,15 @@ class TaskSnapshot:
     exists: bool
     enabled: bool = False
     state_text: str = ""
+
+
+@dataclass(slots=True)
+class BackupRow:
+    """Строка списка резервных копий."""
+
+    path: Path
+    created: str
+    size_bytes: int = 0
 
 
 @dataclass(slots=True)
@@ -229,6 +239,37 @@ class AppController:
         self._set_state(groups=rows)
         return self._state
 
+    # --- резервные копии -------------------------------------------------------
+    def list_backups(self) -> list[BackupRow]:
+        """Список резервных копий hosts, новые сверху."""
+        from autohostupdate.services import backup as backup_service
+
+        rows: list[BackupRow] = []
+        for path in backup_service.list_backups(self.settings.update.backup_dir):
+            stat = path.stat()
+            rows.append(
+                BackupRow(
+                    path=path,
+                    created=datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M:%S"),
+                    size_bytes=stat.st_size,
+                )
+            )
+        return rows
+
+    def restore_backup(self, backup_path: str | Path) -> AppState:
+        """Восстанавливает hosts из выбранной копии и обновляет состояние."""
+        from autohostupdate.services import backup as backup_service
+        from autohostupdate.services.dns import flush_dns
+
+        backup_service.restore_backup(backup_path, self.settings.update.hosts_path)
+        if self.settings.update.flush_dns:
+            flush_dns()
+        name = Path(backup_path).name
+        self._log.info("hosts восстановлен из %s", name)
+        self.load_local()
+        self._set_state(status_text=f"hosts восстановлен из {name}", last_error=None)
+        return self._state
+
     # --- планировщик -----------------------------------------------------------
     def task_snapshot(self) -> TaskSnapshot:
         """Читает состояние задачи. Не требует прав администратора."""
@@ -357,6 +398,7 @@ def summarize_plan(plan: UpdatePlan) -> str:
 __all__ = [
     "AppController",
     "AppState",
+    "BackupRow",
     "GroupRow",
     "SourceProbe",
     "TaskSnapshot",

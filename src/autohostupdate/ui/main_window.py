@@ -162,6 +162,11 @@ class MainWindow:
         self.log_backup_count_box = self._ctl("LogBackupCountBox", "textbox")
         self.log_directory_box = self._ctl("LogDirectoryBox", "textbox")
         self.settings_status_text = self._ctl("SettingsStatusText", "textblock")
+        self.backups_list = self._ctl("BackupsList", "listview")
+        self.backup_status_text = self._ctl("BackupStatusText", "textblock")
+        self.restore_backup_button = self._ctl("RestoreBackupButton", "button")
+        self._backup_paths: list[Path] = []
+        self._pending_restore: Path | None = None
         self.about_version_text = self._ctl("AboutVersionText", "textblock")
         self.about_environment_text = self._ctl("AboutEnvironmentText", "textblock")
 
@@ -230,6 +235,9 @@ class MainWindow:
         self._wire("ExportDiagnosticsButton", self._export_diagnostics)
         self._wire("SaveSettingsButton", self._save_settings)
         self._wire("ResetSettingsButton", self._reset_settings)
+        self._wire("RefreshBackupsButton", self._refresh_backups)
+        self._wire("RestoreBackupButton", self._restore_selected_backup)
+        self._wire("OpenBackupsButton", self._open_backups)
 
     def _wire_checkboxes(self) -> None:
         for box in (
@@ -325,6 +333,8 @@ class MainWindow:
             self._refresh_logs()
         elif tag == "schedule":
             self._refresh_task_status()
+        elif tag == "settings":
+            self._refresh_backups()
 
     # --- обработчики -----------------------------------------------------------
     def _on_closed(self, sender: Any, args: Any) -> None:
@@ -735,6 +745,62 @@ class MainWindow:
         self.settings_status_text.text = "Настройки сохранены."
         self._notice("Настройки сохранены")
 
+    # --- резервные копии -------------------------------------------------------
+    def _refresh_backups(self) -> None:
+        from winrt.microsoft.ui.xaml.controls import TextBlock
+
+        rows = self.controller.list_backups()
+        self._backup_paths = [row.path for row in rows]
+        self.backups_list.items.clear()
+        for row in rows:
+            label = TextBlock()
+            size_kb = max(1, row.size_bytes // 1024)
+            label.text = f"{row.created}  ·  {row.path.name}  ·  {size_kb} КБ"
+            self.backups_list.items.append(label)
+        self._pending_restore = None
+        self.restore_backup_button.content = self._box("Восстановить")
+        if rows:
+            self.backup_status_text.text = (
+                f"Копий: {len(rows)}. Выберите копию и нажмите «Восстановить»."
+            )
+        else:
+            self.backup_status_text.text = (
+                f"Резервных копий пока нет ({self.settings.update.backup_dir})."
+            )
+
+    def _open_backups(self) -> None:
+        directory = Path(self.settings.update.backup_dir)
+        directory.mkdir(parents=True, exist_ok=True)
+        os.startfile(directory)
+
+    def _restore_selected_backup(self) -> None:
+        index = self.backups_list.selected_index
+        if index < 0 or index >= len(self._backup_paths):
+            self.backup_status_text.text = "Выберите резервную копию в списке."
+            return
+        if not is_admin():
+            self.backup_status_text.text = (
+                "Для восстановления нужны права администратора. "
+                "CLI: autohostupdate --restore <файл>"
+            )
+            return
+
+        path = self._backup_paths[index]
+        if self._pending_restore != path:
+            self._pending_restore = path
+            self.restore_backup_button.content = self._box(f"Подтвердить: {path.name}")
+            self.backup_status_text.text = "Повторное нажатие перезапишет hosts выбранной копией."
+            return
+
+        try:
+            self.controller.restore_backup(path)
+        except (AutoHostUpdateError, OSError) as exc:
+            self.backup_status_text.text = f"Ошибка: {exc}"
+            return
+        self._notice(f"hosts восстановлен из {path.name}")
+        self._refresh_backups()
+        self.backup_status_text.text = f"hosts восстановлен из {path.name}."
+
     def _reset_settings(self) -> None:
         self.settings = AppSettings()
         self.controller.settings = self.settings
@@ -814,6 +880,7 @@ class MainWindow:
         self._refresh_groups()
         self._refresh_logs()
         self._refresh_task_status()
+        self._refresh_backups()
         self._load_settings_into_ui()
         if os.environ.get("AUTOHOSTUPDATE_UI_SMOKE_WRITE"):
             self._save_source_settings(silent=True)

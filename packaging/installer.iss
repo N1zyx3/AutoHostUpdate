@@ -23,6 +23,13 @@ PrivilegesRequired=admin
 ArchitecturesInstallIn64BitMode=x64compatible
 ArchitecturesAllowed=x64compatible
 MinVersion=10.0.17763
+; Не даём устанавливать/удалять, пока запущен UI (Local) или CLI-обновление (Global).
+AppMutex=Local\AutoHostUpdate_UI,Global\AutoHostUpdate_RunOnce
+CloseApplications=yes
+RestartApplications=no
+UsePreviousAppDir=yes
+UninstallDisplayIcon={app}\{#AppExe}
+SetupLogging=yes
 
 [Files]
 Source: "..\dist\{#AppName}\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs
@@ -36,8 +43,10 @@ Name: "desktopicon"; Description: "Создать ярлык на рабочем
 Name: "schedule"; Description: "Запускать обновление при входе в систему"; GroupDescription: "Автоматизация:"
 
 [Run]
+; Задача регистрируется от администратора (Setup уже elevated).
 Filename: "{app}\{#AppExe}"; Parameters: "--install-task"; Flags: runhidden; Tasks: schedule
-Filename: "{app}\{#AppExe}"; Description: "Запустить {#AppName}"; Flags: nowait postinstall skipifsilent
+; UI запускаем от исходного (неэлевированного) пользователя.
+Filename: "{app}\{#AppExe}"; Description: "Запустить {#AppName}"; Flags: nowait postinstall skipifsilent runasoriginaluser
 
 [UninstallRun]
 Filename: "{app}\{#AppExe}"; Parameters: "--uninstall-task"; Flags: runhidden; RunOnceId: "RemoveTask"

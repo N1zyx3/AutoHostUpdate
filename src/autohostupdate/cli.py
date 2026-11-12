@@ -123,6 +123,10 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.restore:
             backup_service.restore_backup(args.restore, settings.update.hosts_path)
+            if settings.update.flush_dns:
+                from autohostupdate.services.dns import flush_dns
+
+                flush_dns()
             _emit(args.quiet, f"hosts восстановлен из {args.restore}", args.json)
             return EXIT_OK
 

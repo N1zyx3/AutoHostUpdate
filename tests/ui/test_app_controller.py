@@ -47,6 +47,56 @@ def test_subscribe_receives_state(tmp_path) -> None:
     assert seen[-1].hosts_path == str(settings.update.hosts_path)
 
 
+def test_list_backups_reports_newest_first(tmp_path) -> None:
+    import os
+
+    settings = make_settings(tmp_path)
+    backup_dir = Path(settings.update.backup_dir)
+    backup_dir.mkdir(parents=True)
+    older = backup_dir / "hosts_20260101_000000.bak"
+    older.write_text("a", encoding="utf-8")
+    newer = backup_dir / "hosts_20260102_000000.bak"
+    newer.write_text("bb", encoding="utf-8")
+    os.utime(older, (1_000, 1_000))
+    os.utime(newer, (2_000, 2_000))
+
+    rows = AppController(settings).list_backups()
+
+    assert [row.path for row in rows] == [newer, older]
+    assert rows[0].size_bytes == 2
+
+
+def test_restore_backup_overwrites_hosts(tmp_path) -> None:
+    settings = make_settings(tmp_path)
+    settings.update.flush_dns = False
+    backup_dir = Path(settings.update.backup_dir)
+    backup_dir.mkdir(parents=True)
+    backup = backup_dir / "hosts_20260101_000000.bak"
+    backup.write_text("# Откат\n1.2.3.4 rollback.example\n", encoding="utf-8")
+    controller = AppController(settings)
+
+    state = controller.restore_backup(backup)
+
+    assert Path(settings.update.hosts_path).read_text(encoding="utf-8") == backup.read_text(
+        encoding="utf-8"
+    )
+    assert "hosts восстановлен" in state.status_text
+    assert state.last_error is None
+
+
+def test_restore_missing_backup_raises(tmp_path) -> None:
+    import pytest as _pytest
+
+    from autohostupdate.errors import HostsWriteError
+
+    settings = make_settings(tmp_path)
+    settings.update.flush_dns = False
+    controller = AppController(settings)
+
+    with _pytest.raises(HostsWriteError):
+        controller.restore_backup(tmp_path / "absent.bak")
+
+
 def test_build_client_uses_source_settings() -> None:
     settings = AppSettings()
     settings.source.url = "https://example.com/hosts"
