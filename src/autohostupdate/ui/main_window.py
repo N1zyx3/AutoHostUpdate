@@ -204,7 +204,10 @@ class MainWindow:
 
     def _wire_buttons(self) -> None:
         self._wire("CheckButton", lambda: self._submit(self.controller.check))
-        self._wire("UpdateButton", lambda: self._submit(self.controller.update))
+        self._wire(
+            "UpdateButton",
+            lambda: self._submit(self.controller.update, notify=True),
+        )
         self._wire(
             "DryRunButton",
             lambda: self._submit(lambda: self.controller.update(dry_run=True)),
@@ -251,7 +254,9 @@ class MainWindow:
     def _ui(self, fn: Callable[[], None]) -> None:
         self.window.dispatcher_queue.try_enqueue(lambda: fn())
 
-    def _submit(self, factory: Callable[[], Coroutine[Any, Any, AppState]]) -> None:
+    def _submit(
+        self, factory: Callable[[], Coroutine[Any, Any, AppState]], *, notify: bool = False
+    ) -> None:
         self._set_busy(True, "Выполняется…")
 
         def job() -> None:
@@ -263,8 +268,29 @@ class MainWindow:
                 self._ui(lambda: self._show_error(message))
             finally:
                 self._ui(lambda: self._set_busy(False))
+                if notify:
+                    # Уведомления WinRT показываем только из UI-потока (STA).
+                    self._ui(self._notify_result)
 
         self.executor.submit(job)
+
+    def _notify_result(self) -> None:
+        from autohostupdate.services.notifications import NotificationKind, notify
+
+        state = self.controller.state
+        if state.last_error:
+            notify(
+                self.settings,
+                "AutoHostUpdate",
+                f"Ошибка: {state.last_error}",
+                NotificationKind.ERROR,
+            )
+            return
+        text = state.status_text
+        if text.startswith("Обновлено"):
+            notify(self.settings, "AutoHostUpdate", text, NotificationKind.SUCCESS)
+        elif "не требуется" in text or text.startswith("Dry-run"):
+            notify(self.settings, "AutoHostUpdate", text, NotificationKind.NO_UPDATE)
 
     def _set_busy(self, busy: bool, text: str = "") -> None:
         self.busy_ring.is_active = busy
