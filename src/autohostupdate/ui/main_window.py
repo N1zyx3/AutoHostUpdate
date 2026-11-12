@@ -212,7 +212,7 @@ class MainWindow:
         self._wire("CheckButton", lambda: self._submit(self.controller.check))
         self._wire(
             "UpdateButton",
-            lambda: self._submit(self.controller.update, notify=True),
+            self._update_or_elevate,
         )
         self._wire(
             "DryRunButton",
@@ -300,6 +300,32 @@ class MainWindow:
             notify(self.settings, "AutoHostUpdate", text, NotificationKind.SUCCESS)
         elif "не требуется" in text or text.startswith("Dry-run"):
             notify(self.settings, "AutoHostUpdate", text, NotificationKind.NO_UPDATE)
+
+    def _update_or_elevate(self) -> None:
+        """Обновление hosts: без прав администратора — через UAC-helper."""
+        if is_admin():
+            self._submit(self.controller.update, notify=True)
+            return
+
+        self._set_busy(True, "Запрос прав администратора…")
+
+        def job() -> None:
+            rc = self._elevated_cli("--update")
+
+            def done() -> None:
+                self._set_busy(False)
+                if rc is None:
+                    self._show_error(
+                        "Не удалось запустить обновление с правами администратора (UAC отклонён)."
+                    )
+                    return
+                self.controller.load_local()
+                self._notice("Обновление выполнено с правами администратора")
+                self._notify_result()
+
+            self._ui(done)
+
+        self.executor.submit(job)
 
     def _set_busy(self, busy: bool, text: str = "") -> None:
         self.busy_ring.is_active = busy
@@ -443,13 +469,30 @@ class MainWindow:
 
     # --- расписание ------------------------------------------------------------
     def _task_action(self, action: str) -> None:
-        if action in {"install", "remove"} and not is_admin():
-            self.task_status_text.text = (
-                "Нужны права администратора. Запустите приложение от имени администратора "
-                "или используйте CLI: autohostupdate --install-task"
-            )
+        if not self._save_schedule_settings():
             return
-        self._save_schedule_settings()
+        if action in {"install", "remove"} and not is_admin():
+            argument = "--install-task" if action == "install" else "--uninstall-task"
+            self.task_status_text.text = "Запрос прав администратора…"
+            self._set_busy(True)
+
+            def job() -> None:
+                rc = self._elevated_cli(argument)
+
+                def done() -> None:
+                    self._set_busy(False)
+                    if rc is None:
+                        self.task_status_text.text = (
+                            "Не удалось повысить права (UAC отклонён). "
+                            "Запустите приложение от имени администратора."
+                        )
+                        return
+                    self._refresh_task_status()
+
+                self._ui(done)
+
+            self.executor.submit(job)
+            return
         try:
             if action == "install":
                 snapshot = self.controller.install_task()
@@ -471,13 +514,20 @@ class MainWindow:
         except AutoHostUpdateError as exc:
             self.task_status_text.text = f"Ошибка: {exc}"
 
+    def _elevated_cli(self, *args: str) -> int | None:
+        """Запускает привилегированную CLI-команду через UAC и ждёт завершения."""
+        from autohostupdate.services.privileges import exec_self_elevated
+
+        config = str(self.settings.advanced.settings_path)
+        return exec_self_elevated([*args, "--quiet", "--config", config])
+
     def _refresh_task_status(self) -> None:
         snapshot = self.controller.task_snapshot()
         self.task_status_text.text = self._task_text(snapshot)
         self.schedule_admin_hint.text = (
             "Права администратора есть: задачу можно установить."
             if is_admin()
-            else "Для установки/удаления задачи нужны права администратора."
+            else "Для установки/удаления задачи потребуются права администратора (запрос UAC)."
         )
 
     @staticmethod
@@ -489,7 +539,7 @@ class MainWindow:
         state = f", {snapshot.state_text}" if snapshot.state_text else ""
         return f"Задача «{snapshot.name}»: {enabled}{state}"
 
-    def _save_schedule_settings(self) -> None:
+    def _save_schedule_settings(self) -> bool:
         schedule = self.settings.schedule
         schedule.task_name = (self.task_name_box.text or "").strip() or schedule.task_name
         trigger = self._selected_tag(self.trigger_combo) or schedule.trigger.value
@@ -523,11 +573,13 @@ class MainWindow:
 
         if errors:
             self.task_status_text.text = "; ".join(errors)
-            return
+            return False
         try:
             self.controller.save_settings(self.settings)
         except (AutoHostUpdateError, ValueError) as exc:
             self.task_status_text.text = f"Ошибка сохранения: {exc}"
+            return False
+        return True
 
     # --- журнал ----------------------------------------------------------------
     def _log_query(self) -> LogQuery:
