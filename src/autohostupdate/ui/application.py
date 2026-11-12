@@ -65,7 +65,11 @@ class AutoHostUpdateApp(Application, IXamlMetadataProvider):
 def start() -> int:
     """Запускает приложение. Вызывается после bootstrap Windows App SDK."""
     single = SingleInstance("Local\\AutoHostUpdate_UI")
-    if not single.acquire():
+    try:
+        single_instance_enabled = load_settings().general.single_instance
+    except Exception:  # pragma: no cover - защитный контур при битых настройках
+        single_instance_enabled = True
+    if single_instance_enabled and not single.acquire():
         print("AutoHostUpdate уже запущен.", file=sys.stderr)
         return 0
 

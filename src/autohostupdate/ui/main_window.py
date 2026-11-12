@@ -101,6 +101,7 @@ class MainWindow:
         self.window = window
         self.window.title = f"AutoHostUpdate {__version__}"
         self.root = window.content.as_(FrameworkElement)
+        self._apply_theme()
 
         self.nav = self._ctl("NavView", "navigationview")
         self.status_bar = self._ctl("StatusBar", "infobar")
@@ -744,6 +745,7 @@ class MainWindow:
 
         self.settings_status_text.text = "Настройки сохранены."
         self._notice("Настройки сохранены")
+        self._apply_theme()
 
     # --- резервные копии -------------------------------------------------------
     def _refresh_backups(self) -> None:
@@ -811,6 +813,7 @@ class MainWindow:
             self.settings_status_text.text = f"Ошибка сохранения: {exc}"
             return
         self.settings_status_text.text = "Настройки сброшены к значениям по умолчанию."
+        self._apply_theme()
         self._refresh_task_status()
         self.controller.load_local()
 
@@ -867,7 +870,31 @@ class MainWindow:
 
     def show(self) -> None:
         self.window.activate()
+        if self.settings.general.start_minimized:
+            self._minimize()
         self.log.info("UI запущен")
+
+    def _apply_theme(self) -> None:
+        from winrt.microsoft.ui.xaml import ElementTheme
+
+        themes = {
+            Theme.SYSTEM: ElementTheme.DEFAULT,
+            Theme.LIGHT: ElementTheme.LIGHT,
+            Theme.DARK: ElementTheme.DARK,
+        }
+        try:
+            self.root.requested_theme = themes[self.settings.general.theme]
+        except Exception:  # pragma: no cover - зависит от версии WinUI
+            self.log.debug("Не удалось применить тему", exc_info=True)
+
+    def _minimize(self) -> None:
+        from winrt.microsoft.ui.windowing import OverlappedPresenter
+
+        try:
+            presenter = self.window.app_window.presenter.as_(OverlappedPresenter)
+            presenter.minimize()
+        except Exception:  # pragma: no cover - зависит от версии WinAppSDK
+            self.log.debug("Не удалось свернуть окно", exc_info=True)
 
     def smoke_exercise(self) -> None:
         """Прокликивает страницы и обработчики чтения (используется в smoke-тесте)."""
@@ -882,6 +909,7 @@ class MainWindow:
         self._refresh_task_status()
         self._refresh_backups()
         self._load_settings_into_ui()
+        self._apply_theme()
         if os.environ.get("AUTOHOSTUPDATE_UI_SMOKE_WRITE"):
             self._save_source_settings(silent=True)
             self._save_settings()
