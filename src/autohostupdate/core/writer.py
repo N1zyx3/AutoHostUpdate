@@ -38,7 +38,12 @@ def read_hosts(path: str | os.PathLike[str]) -> HostsDocument:
         raise HostsReadError(f"Не удалось прочитать hosts: {host_path}: {exc}") from exc
 
     text, encoding = decode_bytes(raw)
-    newline = "\r\n" if b"\r\n" in raw else "\n"
+    if "\r\n" in text:
+        newline = "\r\n"
+    elif "\r" in text and "\n" not in text:
+        newline = "\r"
+    else:
+        newline = "\n"
     trailing_newline = text.endswith(("\n", "\r"))
     lines = hosts_parser.split_lines(text)
     return HostsDocument(
@@ -137,9 +142,12 @@ def write_hosts(
     validate: bool = True,
 ) -> None:
     """Записывает строки hosts атомарно с проверкой результата."""
-    data = encode_lines(lines, encoding, newline, final_newline)
+    text = newline.join(lines)
+    if final_newline and lines:
+        text += newline
+    data = text.encode(encoding if encoding != "utf-8-sig" else "utf-8-sig")
     if validate:
         decoded, _ = decode_bytes(data)
-        if hosts_parser.split_lines(decoded) != list(lines):
+        if hosts_parser.normalize_text(decoded) != hosts_parser.normalize_text(text):
             raise HostsWriteError("Проверка результата записи не пройдена: текст не совпадает.")
     write_atomic(path, data)

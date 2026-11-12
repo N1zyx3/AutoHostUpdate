@@ -53,6 +53,16 @@ def test_plan_inserts_marker_when_missing() -> None:
     assert plan.new_lines[0] == "# Последнее обновление: 2026-11-09 10:00:00"
 
 
+def test_plan_is_idempotent() -> None:
+    snapshot = load_source()
+    first = diff.build_plan(local_lines(), snapshot)
+    second = diff.build_plan(first.new_lines, snapshot)
+
+    assert second.changed_count == 0
+    assert second.new_lines == first.new_lines
+    assert not second.marker_changed
+
+
 def test_plan_stable_when_everything_matches() -> None:
     snapshot = SourceSnapshot(
         date_value="2026-01-01",

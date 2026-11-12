@@ -33,6 +33,15 @@ def test_read_detects_utf16_and_lf(tmp_path: Path) -> None:
     assert document.newline == "\n"
 
 
+def test_read_detects_utf16_crlf(tmp_path: Path) -> None:
+    target = tmp_path / "hosts"
+    target.write_bytes("a\r\nb\r\n".encode("utf-16"))
+    document = writer.read_hosts(target)
+    assert document.encoding == "utf-16"
+    assert document.lines == ("a", "b")
+    assert document.newline == "\r\n"
+
+
 def test_read_cp1251_fallback(tmp_path: Path) -> None:
     target = tmp_path / "hosts"
     target.write_bytes("# Локальная\n1.1.1.1 x".encode("cp1251"))
@@ -65,7 +74,7 @@ def test_write_atomic_clears_readonly_target(tmp_path: Path) -> None:
 
 def test_write_hosts_validation_catches_corruption(tmp_path: Path, monkeypatch) -> None:
     target = tmp_path / "hosts"
-    monkeypatch.setattr(writer, "encode_lines", lambda *a, **k: b"\x00\x01")
+    monkeypatch.setattr(writer, "decode_bytes", lambda data: ("\x00\x01", "utf-8"))
     with pytest.raises(HostsWriteError):
         writer.write_hosts(target, ["a"])
 
